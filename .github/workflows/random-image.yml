@@ -1,0 +1,65 @@
+name: Random Image Picker
+
+on:
+  schedule:
+    - cron: "0 * * * *" # 毎時0分に実行
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  pick-random-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore last-image cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/last-image.txt
+          key: last-image-cache
+          restore-keys: last-image-cache
+
+      - name: Pick random webp and overwrite docs/Image.webp
+        run: |
+          mapfile -t all_files < <(find images -maxdepth 1 -name "*.webp" -type f | sort)
+          if [ ${#all_files[@]} -eq 0 ]; then
+            echo "No webp files found in images/"
+            exit 1
+          fi
+
+          # 前回選出ファイル名をキャッシュから読み込む
+          last_name=""
+          if [ -f /tmp/last-image.txt ]; then
+            last_name=$(cat /tmp/last-image.txt)
+          fi
+
+          # ファイル名で前回を除いた候補リストを作成（候補が1枚しかない場合はそのまま使用）
+          mapfile -t candidates < <(printf '%s\n' "${all_files[@]}" | grep -vxF "images/$last_name")
+          if [ ${#candidates[@]} -eq 0 ]; then
+            candidates=("${all_files[@]}")
+          fi
+
+          selected="${candidates[RANDOM % ${#candidates[@]}]}"
+          selected_name=$(basename "$selected")
+          echo "Last: $last_name"
+          echo "Selected: $selected_name"
+          cp "$selected" docs/Image.webp
+          echo "$selected_name" > /tmp/last-image.txt
+
+      - name: Save last-image cache
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/last-image.txt
+          key: last-image-cache
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/Image.webp
+          git diff --cached --quiet && echo "No change" && exit 0
+          git commit -m "chore: update Image.webp [skip ci]"
+          git push
