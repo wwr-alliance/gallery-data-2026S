@@ -42,7 +42,7 @@ jobs:
             candidates=("${all_files[@]}")
           fi
 
-          selected="${candidates[RANDOM % ${#candidates[@]}]}"
+          selected=$(printf '%s\n' "${candidates[@]}" | shuf -n 1)
           selected_name=$(basename "$selected")
           echo "Last: $last_name"
           echo "Selected: $selected_name"
