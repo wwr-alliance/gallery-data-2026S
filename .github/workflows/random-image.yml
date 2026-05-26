@@ -19,7 +19,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/last-image.txt
-          key: last-image-cache
+          key: last-image-cache-${{ github.run_id }}
           restore-keys: last-image-cache
 
       - name: Pick random webp and overwrite docs/Image.webp
@@ -53,7 +53,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /tmp/last-image.txt
-          key: last-image-cache
+          key: last-image-cache-${{ github.run_id }}
 
       - name: Commit and push
         run: |
