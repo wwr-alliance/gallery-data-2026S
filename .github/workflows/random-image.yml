@@ -30,10 +30,15 @@ jobs:
             exit 1
           fi
 
-          # 前回選出ファイル名をキャッシュから読み込む
+          # 前回選出ファイル名をキャッシュから読み込む（images/ に実在しない場合は無視）
           last_name=""
           if [ -f /tmp/last-image.txt ]; then
-            last_name=$(cat /tmp/last-image.txt)
+            cached=$(cat /tmp/last-image.txt)
+            if printf '%s\n' "${all_files[@]}" | grep -qxF "images/$cached"; then
+              last_name="$cached"
+            else
+              echo "Cached file '$cached' not found in images/, ignoring"
+            fi
           fi
 
           # ファイル名で前回を除いた候補リストを作成（候補が1枚しかない場合はそのまま使用）
